@@ -26,10 +26,15 @@ def _auth_client(token: str | None = None) -> Client:
 
 @app.command()
 def login(
-    email: str = typer.Option(None, "--email", "-e", help="Email (prompted if omitted)."),
+    email: str = typer.Option(None, "--email", "-e", help="Email for password sign-in (prompted if omitted)."),
     account: str = typer.Option(None, "--account", help="Account to sign into (if you belong to several)."),
+    password: bool = typer.Option(False, "--password", help="Use email + password instead of the browser."),
+    no_browser: bool = typer.Option(False, "--no-browser", help="Print the sign-in URL and paste the code (SSH/headless)."),
 ) -> None:
-    """Sign in with email + password and cache a session token."""
+    """Sign in — opens your browser by default; --password for the old flow."""
+    if not password and not email:
+        _browser_login(paste_mode=no_browser)
+        return
     email = email or Prompt.ask("email")
     password = Prompt.ask("password", password=True)
     body = {"email": email, "password": password, "rememberMe": True}
@@ -62,6 +67,100 @@ def login(
     config.update(session_token=token, session_user=user)
     who = user.get("email") or email
     ok(f"signed in as [bold]{who}[/] — session cached at {config.config_path()}")
+
+
+def _browser_login(paste_mode: bool = False) -> None:
+    """PKCE loopback flow against /auth/cli/authorize + /auth/cli/token."""
+    import base64
+    import hashlib
+    import http.server
+    import secrets
+    import threading
+    import urllib.parse
+    import webbrowser
+
+    verifier = secrets.token_urlsafe(48)
+    challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(verifier.encode()).digest()
+    ).rstrip(b"=").decode()
+    state = secrets.token_urlsafe(24)
+    origin = config.app_url(state_url())
+
+    result: dict = {}
+    port = 0
+    httpd = None
+    if not paste_mode:
+        class _CB(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *args):  # noqa: N802
+                pass
+
+            def do_GET(self):  # noqa: N802
+                parsed = urllib.parse.urlparse(self.path)
+                if parsed.path != "/cb":
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                q = urllib.parse.parse_qs(parsed.query)
+                ok_state = q.get("state", [""])[0] == state
+                if ok_state:
+                    result["code"] = q.get("code", [""])[0]
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                body = ("<h2 style='font-family:sans-serif'>Signed in — you can close this tab "
+                        "and return to your terminal.</h2>") if ok_state else (
+                        "<h2 style='font-family:sans-serif'>Sign-in state mismatch — "
+                        "run tendrl-cli login again.</h2>")
+                self.wfile.write(body.encode())
+
+        try:
+            httpd = http.server.HTTPServer(("127.0.0.1", 0), _CB)
+            port = httpd.server_port
+        except OSError:
+            paste_mode = True
+
+    authorize = (f"{origin}/auth/cli/authorize?state={state}"
+                 f"&challenge={challenge}&port={port}")
+    err_console.print(f"[dim]opening[/] {authorize}")
+    opened = webbrowser.open(authorize)
+    if not opened and not paste_mode:
+        err_console.print("[yellow]![/] couldn't open a browser — visit the URL above, "
+                          "then paste the code it shows")
+
+    code = None
+    if httpd is not None and not paste_mode:
+        done = threading.Event()
+
+        def serve() -> None:
+            while "code" not in result and not done.is_set():
+                httpd.handle_request()
+
+        t = threading.Thread(target=serve, daemon=True)
+        t.start()
+        t.join(timeout=180)
+        done.set()
+        httpd.server_close()
+        code = result.get("code")
+        if not code:
+            err_console.print("[yellow]![/] no callback received — paste the code from "
+                              "the browser instead (re-run with --no-browser to skip the listener)")
+    if not code:
+        code = Prompt.ask("code from the browser").strip()
+
+    client = _auth_client()
+    resp = client.post("/auth/cli/token", json={"code": code, "verifier": verifier})
+    token = resp.get("token") if isinstance(resp, dict) else None
+    if not token:
+        raise ApiError("sign-in failed: no token in exchange response", payload=resp)
+    config.update(session_token=token,
+                  session_user={"email": resp.get("email"),
+                                "accountNumber": resp.get("accountNumber")})
+    ok(f"signed in as [bold]{resp.get('email')}[/] — session cached at {config.config_path()}")
+
+
+def state_url() -> str | None:
+    from .common import state as _state
+    return _state.get("app_url")
 
 
 @app.command()

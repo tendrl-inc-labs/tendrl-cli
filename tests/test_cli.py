@@ -88,3 +88,24 @@ def test_json_output_is_plain_when_piped(monkeypatch):
     )
     assert out.returncode == 0, out.stderr
     assert _json.loads(out.stdout) == {"a": [1, 2]}
+
+
+@respx.mock
+def test_browser_login_paste_mode(monkeypatch, tmp_path):
+    import tendrl_cli.auth_cmds as ac
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.setattr("webbrowser.open", lambda url: True)
+    monkeypatch.setattr("tendrl_cli.auth_cmds.Prompt.ask", staticmethod(lambda *a, **k: "code-abc123456789xyz"))
+    route = respx.post("https://app.tendrl.com/auth/cli/token").mock(
+        return_value=httpx.Response(200, json={
+            "success": True, "token": "tok-xyz", "email": "u@example.com",
+            "accountNumber": 1, "rolePath": "1:us-1:iam:role:Admin",
+        })
+    )
+    ac._browser_login(paste_mode=True)
+    import json as _json, pathlib
+    cfg = _json.loads((tmp_path / "tendrl" / "config.json").read_text())
+    assert cfg["session_token"] == "tok-xyz"
+    body = _json.loads(route.calls[0].request.content)
+    assert body["code"] == "code-abc123456789xyz"
+    assert len(body["verifier"]) >= 43
