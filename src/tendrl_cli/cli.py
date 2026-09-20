@@ -35,6 +35,9 @@ def root(
     app_url: str = typer.Option(
         None, "--app-url", help="Platform origin (default https://app.tendrl.com; env TENDRL_APP_URL)."
     ),
+    key: str = typer.Option(
+        None, "--key", help="API key for this invocation (overrides env and stored keys)."
+    ),
     version: bool = typer.Option(
         None, "--version", callback=_version_callback, is_eager=True,
         help="Show the CLI version.",
@@ -42,6 +45,7 @@ def root(
 ) -> None:
     state["json"] = json_output
     state["app_url"] = app_url
+    state["key"] = key
 
 
 # Session commands at the top level.

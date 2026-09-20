@@ -14,11 +14,11 @@ from .http import Client
 from .render import print_json, print_records
 
 # Set once by the root callback; read by every command.
-state: dict[str, Any] = {"json": False, "app_url": None}
+state: dict[str, Any] = {"json": False, "app_url": None, "key": None}
 
 
 def client(service: str, key: str | None = None) -> Client:
-    return Client.for_service(service, app_url=state["app_url"], key=key)
+    return Client.for_service(service, app_url=state["app_url"], key=key or state.get("key"))
 
 
 def session_client() -> Client:
