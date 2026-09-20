@@ -139,7 +139,7 @@ def accounts_show() -> None:
 def billing_plans(
     product: str = typer.Option("contact", "--product", "-p", help="contact, strand, or surface."),
 ) -> None:
-    """Show the public plan catalogue for a product."""
+    """Show the public plan catalog for a product."""
     client = _auth_client()  # public endpoint, no credential needed
     payload = client.get("/api/billing/plans", params={"product": product})
     if json_mode():
