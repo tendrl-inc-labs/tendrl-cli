@@ -43,12 +43,21 @@ app.add_typer(scan, name="scan")
 @scan.command("file")
 def scan_file(
     path: Path = typer.Argument(..., exists=True, readable=True, help="File to scan."),
-    profile: str = typer.Option(None, "--profile", help="Scan profile to apply."),
+    profile: str = typer.Option(None, "--profile", help="Scan profile name or id."),
 ) -> None:
     """Scan a local file."""
+    c = _s()
+    form = None
+    if profile:
+        # The API takes a profile_id; resolve a profile name.
+        profile_id = profile
+        if "-" not in profile or len(profile) < 32:
+            profiles = c.get("/account/profiles")
+            rows = profiles if isinstance(profiles, list) else profiles.get("profiles", [])
+            profile_id = next((p["id"] for p in rows if p.get("name") == profile), profile)
+        form = {"profile_id": profile_id}
     with path.open("rb") as fh:
-        form = {"profile": profile} if profile else None
-        result = _s().post("/scan", data=form, files={"file": (path.name, fh)})
+        result = c.post("/scan", data=form, files={"file": (path.name, fh)})
     show_detail(result, title=f"scan: {path.name}")
 
 

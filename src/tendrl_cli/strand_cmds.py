@@ -92,6 +92,18 @@ def workflows_run(
     show_detail(_s().post(f"/workflows/{workflow_id}/run", json=body), title="run queued")
 
 
+@workflows.command("save")
+def workflows_save(workflow_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+    """Save a new immutable version of a workflow's graph.
+
+    The body is the graph: {"nodes": {...}, "edges": [...], "variables": {...}}.
+    """
+    body = parse_body(data, file)
+    body.setdefault("edges", [])
+    body.setdefault("nodes", {})
+    show_detail(_s().post(f"/workflows/{workflow_id}/versions", json=body), title="version saved")
+
+
 @workflows.command("versions")
 def workflows_versions(workflow_id: str) -> None:
     """List a workflow's versions."""
