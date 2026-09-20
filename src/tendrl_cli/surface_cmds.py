@@ -1,0 +1,195 @@
+"""Surface commands: scans, history, profiles, account.
+
+Authenticates with a Surface API key (``SURFACE_KEY``, format
+``sfk_xxx.secret``).
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import typer
+
+from .common import (
+    DATA_OPT,
+    FILE_OPT,
+    LIMIT_OPT,
+    OFFSET_OPT,
+    client,
+    parse_body,
+    show_detail,
+    show_list,
+)
+from .render import ok
+
+app = typer.Typer(help="Surface — file and payload scanning.")
+
+
+def _s():
+    return client("surface")
+
+
+def _confirm(what: str, yes: bool) -> None:
+    if not yes:
+        typer.confirm(f"delete {what}?", abort=True)
+
+
+# ---------------------------------------------------------------- scanning
+
+scan = typer.Typer(help="Submit and inspect scans.")
+app.add_typer(scan, name="scan")
+
+
+@scan.command("file")
+def scan_file(
+    path: Path = typer.Argument(..., exists=True, readable=True, help="File to scan."),
+    profile: str = typer.Option(None, "--profile", help="Scan profile to apply."),
+) -> None:
+    """Scan a local file."""
+    with path.open("rb") as fh:
+        form = {"profile": profile} if profile else None
+        result = _s().post("/scan", data=form, files={"file": (path.name, fh)})
+    show_detail(result, title=f"scan: {path.name}")
+
+
+@scan.command("payload")
+def scan_payload(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+    """Scan an inline payload (JSON body)."""
+    show_detail(_s().post("/scan/payload", json=parse_body(data, file)), title="scan")
+
+
+@scan.command("get")
+def scan_get(scan_id: str) -> None:
+    """Show a scan's result."""
+    show_detail(_s().get(f"/scan/{scan_id}"))
+
+
+# ---------------------------------------------------------------- history
+
+history = typer.Typer(help="Scan history.")
+app.add_typer(history, name="history")
+
+
+@history.command("list")
+def history_list(limit: int = LIMIT_OPT, offset: int = OFFSET_OPT) -> None:
+    """List past scans."""
+    show_list(_s().get("/history", params={"limit": limit, "offset": offset}),
+              "history", "scans", empty="no scans yet")
+
+
+@history.command("get")
+def history_get(scan_id: str) -> None:
+    """Show one history entry."""
+    show_detail(_s().get(f"/history/{scan_id}"))
+
+
+@history.command("export")
+def history_export(
+    scan_id: str,
+    out: Path = typer.Option(None, "--out", "-o", help="Output file."),
+) -> None:
+    """Export a scan report."""
+    resp = _s().get(f"/history/{scan_id}/export", raw=True)
+    target = out or Path(f"surface-scan-{scan_id}.json")
+    target.write_bytes(resp.content)
+    ok(f"exported scan report to {target}")
+
+
+# ---------------------------------------------------------------- account
+
+account = typer.Typer(help="Account, usage, and analytics.")
+app.add_typer(account, name="account")
+
+
+@account.command("show")
+def account_show() -> None:
+    """Show account details and plan."""
+    show_detail(_s().get("/account"), title="surface account")
+
+
+@account.command("usage")
+def account_usage() -> None:
+    """Show scan usage against your plan."""
+    show_detail(_s().get("/usage"), title="usage")
+
+
+@account.command("analytics")
+def account_analytics() -> None:
+    """Show detection analytics."""
+    show_detail(_s().get("/analytics"), title="analytics")
+
+
+@account.command("blocked-ips")
+def account_blocked_ips() -> None:
+    """List blocked IPs."""
+    show_list(_s().get("/blocked-ips"), "blocked_ips", "ips")
+
+
+# ---------------------------------------------------------------- profiles
+
+profiles = typer.Typer(help="Scan profiles.")
+app.add_typer(profiles, name="profiles")
+
+
+@profiles.command("list")
+def profiles_list() -> None:
+    """List scan profiles."""
+    show_list(_s().get("/profiles"), "profiles")
+
+
+@profiles.command("get")
+def profiles_get(profile_id: str) -> None:
+    """Show one profile."""
+    show_detail(_s().get(f"/profiles/{profile_id}"))
+
+
+@profiles.command("create")
+def profiles_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+    """Create a scan profile."""
+    show_detail(_s().post("/profiles", json=parse_body(data, file)), title="created")
+
+
+@profiles.command("update")
+def profiles_update(profile_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+    """Update a scan profile."""
+    show_detail(_s().put(f"/profiles/{profile_id}", json=parse_body(data, file)))
+
+
+@profiles.command("delete")
+def profiles_delete(profile_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+    """Delete a scan profile."""
+    _confirm(f"profile {profile_id}", yes)
+    _s().delete(f"/profiles/{profile_id}")
+    ok(f"deleted profile {profile_id}")
+
+
+@profiles.command("test-webhook")
+def profiles_test_webhook(profile_id: str) -> None:
+    """Send a test event to a profile's webhook."""
+    show_detail(_s().post(f"/profiles/{profile_id}/test-webhook"), title="webhook test")
+
+
+# ---------------------------------------------------------------- keys
+
+keys = typer.Typer(help="Surface API keys.")
+app.add_typer(keys, name="keys")
+
+
+@keys.command("list")
+def keys_list() -> None:
+    """List API keys."""
+    show_list(_s().get("/api-keys"), "api_keys", "keys")
+
+
+@keys.command("create")
+def keys_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+    """Create an API key (secret shown once — save it)."""
+    show_detail(_s().post("/api-keys", json=parse_body(data, file)), title="created — secret shown once")
+
+
+@keys.command("delete")
+def keys_delete(key_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+    """Delete an API key."""
+    _confirm(f"API key {key_id}", yes)
+    _s().delete(f"/api-keys/{key_id}")
+    ok(f"deleted key {key_id}")
