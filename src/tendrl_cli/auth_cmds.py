@@ -36,6 +36,9 @@ def login(
         _browser_login(paste_mode=no_browser)
         return
     email = email or Prompt.ask("email")
+    origin = config.app_url(state_url())
+    if origin and not origin.startswith("https://") and origin != "https://app.tendrl.com":
+        warn("sending credentials over plain HTTP — use --app-url with https:// in production")
     password = Prompt.ask("password", password=True)
     body = {"email": email, "password": password, "rememberMe": True}
     if account:
@@ -106,6 +109,8 @@ def _browser_login(paste_mode: bool = False) -> None:
                     result["code"] = q.get("code", [""])[0]
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Security-Policy", "default-src 'none'")
+                self.send_header("X-Content-Type-Options", "nosniff")
                 self.end_headers()
                 body = ("<h2 style='font-family:sans-serif'>Signed in — you can close this tab "
                         "and return to your terminal.</h2>") if ok_state else (
