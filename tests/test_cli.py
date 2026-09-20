@@ -74,3 +74,17 @@ def test_raw_api_command(monkeypatch):
 def test_raw_api_rejects_auth_service():
     result = runner.invoke(app, ["api", "auth", "GET", "/session"])
     assert result.exit_code != 0
+
+
+def test_json_output_is_plain_when_piped(monkeypatch):
+    # FORCE_COLOR must not corrupt --json pipes (jq compatibility).
+    import subprocess, sys, os, json as _json
+    env = dict(os.environ, FORCE_COLOR="1", TERM="xterm-256color",
+               TENDRL_API_KEY="", XDG_CONFIG_HOME="/tmp/nonexistent-cfg")
+    out = subprocess.run(
+        [sys.executable, "-c",
+         "from tendrl_cli.render import print_json; print_json({'a': [1, 2]})"],
+        capture_output=True, text=True, env=env,
+    )
+    assert out.returncode == 0, out.stderr
+    assert _json.loads(out.stdout) == {"a": [1, 2]}

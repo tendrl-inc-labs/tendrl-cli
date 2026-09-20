@@ -41,7 +41,14 @@ STATUS_STYLES = {
 
 
 def print_json(data: Any) -> None:
-    console.print_json(json.dumps(data, default=str))
+    """Raw JSON to stdout. Pretty-printed with colors only on a real TTY:
+    piped output is always plain bytes jq can parse, even under FORCE_COLOR."""
+    import sys
+
+    if sys.stdout.isatty():
+        console.print_json(json.dumps(data, default=str))
+    else:
+        print(json.dumps(data, indent=2, default=str))
 
 
 def ok(message: str) -> None:
