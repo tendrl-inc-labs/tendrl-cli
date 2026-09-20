@@ -567,10 +567,10 @@ def users_invite(email: str = typer.Argument(..., help="Email address to invite.
 
 
 @users.command("revoke-invite")
-def users_revoke_invite(invite_id: str = typer.Argument(..., help="Invite id (see 'users invites').")) -> None:
+def users_revoke_invite(email: str = typer.Argument(..., help="Invited email address (see 'users invites').")) -> None:
     """Revoke a pending invite."""
-    _c().delete(f"/user_invites/{invite_id}")
-    ok(f"revoked invite {invite_id}")
+    _c().delete(f"/user_invites/{email}")
+    ok(f"revoked invite for {email}")
 
 
 roles = typer.Typer(help="IAM roles.")
