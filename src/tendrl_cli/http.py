@@ -120,13 +120,16 @@ class Client:
 
     @classmethod
     def for_service(cls, service: str, *, app_url: str | None = None, key: str | None = None) -> "Client":
-        """Client authenticated with the service's account API key."""
+        """Client authenticated with the service's account API key,
+        falling back to the cached session token from ``tendrl-cli login``."""
         token = config.api_key(service, key)
+        if not token:
+            token = config.session_token()
         if not token:
             names = " or ".join(config.ENV_KEYS[service])
             raise AuthRequired(
                 f"no API key for {service}: set {names}, pass --key, "
-                f"or run 'tendrl-cli config set-key {service} <key>'"
+                f"or run 'tendrl-cli login' to use your session"
             )
         return cls(service, app_url=app_url, token=token)
 

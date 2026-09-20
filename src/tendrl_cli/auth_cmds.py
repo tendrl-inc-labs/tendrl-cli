@@ -109,14 +109,48 @@ def _browser_login(paste_mode: bool = False) -> None:
                     result["code"] = q.get("code", [""])[0]
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Security-Policy", "default-src 'none'")
+                self.send_header("Content-Security-Policy",
+                                 "default-src 'none'; style-src 'unsafe-inline'")
                 self.send_header("X-Content-Type-Options", "nosniff")
                 self.end_headers()
-                body = ("<h2 style='font-family:sans-serif'>Signed in — you can close this tab "
-                        "and return to your terminal.</h2>") if ok_state else (
-                        "<h2 style='font-family:sans-serif'>Sign-in state mismatch — "
-                        "run tendrl-cli login again.</h2>")
-                self.wfile.write(body.encode())
+                if ok_state:
+                    icon, heading, sub = (
+                        "&#x2714;&#xFE0F;",
+                        "Signed in",
+                        "You can close this tab and return to your terminal.",
+                    )
+                else:
+                    icon, heading, sub = (
+                        "&#x26A0;&#xFE0F;",
+                        "State mismatch",
+                        "Run <code>tendrl-cli login</code> again.",
+                    )
+                page = (
+                    "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+                    "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+                    "<title>Tendrl CLI</title>"
+                    "<style>"
+                    "*{margin:0;padding:0;box-sizing:border-box}"
+                    "body{min-height:100vh;display:flex;align-items:center;"
+                    "justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"
+                    "'Segoe UI',sans-serif;background:linear-gradient(170deg,"
+                    "#0f172a 0%,#0f1845 40%,#0f172a 100%);color:#f1f5f9}"
+                    ".card{background:linear-gradient(170deg,rgba(15,23,42,.9) 0%,"
+                    "rgba(15,24,69,.6) 50%,rgba(15,23,42,.9) 100%);"
+                    "border:1px solid rgba(75,111,230,.2);border-radius:24px;"
+                    "box-shadow:0 8px 32px rgba(0,0,0,.3);max-width:420px;"
+                    "width:100%;padding:2.5rem;text-align:center}"
+                    ".icon{font-size:2.5rem;margin-bottom:.8rem}"
+                    "h1{font-size:1.3rem;font-weight:700;margin-bottom:.5rem}"
+                    "p{font-size:.875rem;color:#94a3b8;line-height:1.6}"
+                    "code{background:rgba(75,111,230,.15);padding:.15em .4em;"
+                    "border-radius:4px;font-size:.8rem}"
+                    "</style></head><body><div class='card'>"
+                    f"<div class='icon'>{icon}</div>"
+                    f"<h1>{heading}</h1><p>{sub}</p>"
+                    "</div></body></html>"
+                )
+                self.wfile.write(page.encode())
 
         try:
             httpd = http.server.HTTPServer(("127.0.0.1", 0), _CB)
