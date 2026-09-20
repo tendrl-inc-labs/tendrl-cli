@@ -111,9 +111,16 @@ def workflows_export(
 
 
 @workflows.command("import")
-def workflows_import(path: Path = typer.Argument(..., exists=True, readable=True)) -> None:
+def workflows_import(
+    path: Path = typer.Argument(..., exists=True, readable=True),
+    name: str = typer.Option(None, "--name", help="Name for the imported workflow."),
+) -> None:
     """Import a workflow from an exported JSON file."""
-    body = json.loads(path.read_text())
+    template = json.loads(path.read_text())
+    # The API wants the export wrapped as {"template": ...}; accept either.
+    body = template if "template" in template else {"template": template}
+    if name:
+        body["name"] = name
     show_detail(_s().post("/workflows/import", json=body), title="imported")
 
 
@@ -153,22 +160,35 @@ def runs_steps(run_id: str) -> None:
 
 
 @runs.command("cancel")
-def runs_cancel(run_id: str) -> None:
+def runs_cancel(
+    run_id: str,
+    reason: str = typer.Option(None, "--reason", help="Why the run is being cancelled."),
+) -> None:
     """Cancel a run."""
-    _s().post(f"/runs/{run_id}/cancel")
+    _s().post(f"/runs/{run_id}/cancel", json={"reason": reason} if reason else {})
     ok(f"cancelled run {run_id}")
 
 
 @runs.command("approve")
-def runs_approve(run_id: str, step_run_id: str) -> None:
+def runs_approve(
+    run_id: str,
+    step_run_id: str,
+    comment: str = typer.Option(None, "--comment", help="Note for the audit trail."),
+) -> None:
     """Approve a paused approval step."""
-    show_detail(_s().post(f"/runs/{run_id}/steps/{step_run_id}/approve"), title="approved")
+    body = {"comment": comment} if comment else {}
+    show_detail(_s().post(f"/runs/{run_id}/steps/{step_run_id}/approve", json=body), title="approved")
 
 
 @runs.command("reject")
-def runs_reject(run_id: str, step_run_id: str) -> None:
+def runs_reject(
+    run_id: str,
+    step_run_id: str,
+    comment: str = typer.Option(None, "--comment", help="Note for the audit trail."),
+) -> None:
     """Reject a paused approval step."""
-    show_detail(_s().post(f"/runs/{run_id}/steps/{step_run_id}/reject"), title="rejected")
+    body = {"comment": comment} if comment else {}
+    show_detail(_s().post(f"/runs/{run_id}/steps/{step_run_id}/reject", json=body), title="rejected")
 
 
 # ---------------------------------------------------------------- connectors
@@ -267,14 +287,25 @@ def functions_delete(function_id: str, yes: bool = typer.Option(False, "--yes", 
 
 @functions.command("test")
 def functions_test(
-    function_id: str = typer.Argument(None, help="Function to test (omit to test a body)."),
-    data: str = DATA_OPT,
+    function_id: str = typer.Argument(None, help="Saved function to test (omit with --code-file)."),
+    data: str = typer.Option(None, "--data", "-d", help="Test payload JSON (default {})."),
     file: Path = FILE_OPT,
+    code_file: Path = typer.Option(None, "--code-file", exists=True, readable=True,
+                                   help="Test unsaved code from a local file."),
 ) -> None:
-    """Test a function with an input payload."""
-    body = parse_body(data, file)
-    path = f"/functions/{function_id}/test" if function_id else "/functions/test"
-    show_detail(_s().post(path, json=body), title="test result")
+    """Run a function against a test payload."""
+    payload = parse_body(data, file) if (data or file) else {}
+    if code_file:
+        body = {"code": code_file.read_text(), "test_payload": payload}
+        result = _s().post("/functions/test", json=body)
+    elif function_id:
+        # The test endpoint requires code even for a saved function.
+        code = _s().get(f"/functions/{function_id}").get("code", "")
+        body = {"code": code, "test_payload": payload}
+        result = _s().post(f"/functions/{function_id}/test", json=body)
+    else:
+        raise typer.BadParameter("pass a function id or --code-file")
+    show_detail(result, title="test result")
 
 
 vault = typer.Typer(help="Encrypted secrets (values are never returned).")
@@ -404,9 +435,13 @@ def templates_readiness(template_id: str) -> None:
 
 
 @templates.command("use")
-def templates_use(template_id: str) -> None:
+def templates_use(
+    template_id: str,
+    name: str = typer.Option(None, "--name", help="Name for the new workflow."),
+) -> None:
     """Create a workflow from a template."""
-    show_detail(_s().post(f"/templates/{template_id}/create"), title="created")
+    body = {"name": name} if name else {}
+    show_detail(_s().post(f"/templates/{template_id}/create", json=body), title="created")
 
 
 # ---------------------------------------------------------------- keys, team, roles
@@ -451,19 +486,29 @@ def team_list() -> None:
     show_list(_s().get("/team"), "team", "members", "users")
 
 
+def _role_id(client, role: str) -> str:
+    """Resolve a role name (or id) to its id."""
+    roles = client.get("/roles")
+    rows = roles if isinstance(roles, list) else roles.get("roles", [])
+    for row in rows:
+        if role in (row.get("id"), row.get("name")):
+            return row["id"]
+    raise typer.BadParameter(f"unknown role '{role}' — see 'strand roles list'")
+
+
 @team.command("invite")
-def team_invite(email: str, role: str = typer.Option(None, "--role")) -> None:
+def team_invite(email: str, role: str = typer.Option("Viewer", "--role", help="Role name or id (see 'strand roles list').")) -> None:
     """Invite a team member."""
-    body = {"email": email}
-    if role:
-        body["role"] = role
-    show_detail(_s().post("/team/invite", json=body), title="invited")
+    c = _s()
+    show_detail(c.post("/team/invite", json={"email": email, "role_id": _role_id(c, role)}),
+                title="invited")
 
 
 @team.command("set-role")
-def team_set_role(user_id: str, role: str) -> None:
+def team_set_role(user_id: str, role: str = typer.Argument(..., help="Role name or id.")) -> None:
     """Change a member's role."""
-    _s().put(f"/team/{user_id}/role", json={"role": role})
+    c = _s()
+    c.put(f"/team/{user_id}/role", json={"role_id": _role_id(c, role)})
     ok(f"user {user_id} role set to {role}")
 
 

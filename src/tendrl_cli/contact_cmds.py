@@ -254,10 +254,13 @@ def fanouts_delete(fanout_id: str, yes: bool = typer.Option(False, "--yes", "-y"
 
 
 @fanouts.command("add")
-def fanouts_add(fanout_id: str, entity_id: str) -> None:
+def fanouts_add(fanout_id: str, entity: str = typer.Argument(..., help="Entity name or resource path.")) -> None:
     """Add an entity to a fanout."""
-    _c().post(f"/fanouts/{fanout_id}/entities", json={"entity_id": entity_id})
-    ok(f"added {entity_id} to {fanout_id}")
+    c = _c()
+    # The API wants the entity's full resource path; resolve a bare name.
+    entity_id = entity if ":" in entity else c.get(f"/entities/{entity}")["resourcePath"]
+    c.post(f"/fanouts/{fanout_id}/entities", json={"entityId": entity_id})
+    ok(f"added {entity} to {fanout_id}")
 
 
 @fanouts.command("remove")
@@ -455,7 +458,7 @@ def services_delete(service_id: str, yes: bool = typer.Option(False, "--yes", "-
 
 @services.command("validate")
 def services_validate(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
-    """Validate a payload against a service schema."""
+    """Validate a service definition before creating it."""
     show_detail(_c().post("/services/validate", json=parse_body(data, file)), title="validation")
 
 
@@ -669,9 +672,29 @@ def deployments_get(deployment_id: str) -> None:
 
 
 @deployments.command("create")
-def deployments_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
-    """Create a deployment."""
-    show_detail(_c().post("/deployments", json=parse_body(data, file)), title="created")
+def deployments_create(
+    paths: list[Path] = typer.Argument(..., exists=True, readable=True,
+                                       help="App files to include in the deployment."),
+    name: str = typer.Option(None, "--name", help="Deployment name."),
+    entry: str = typer.Option(None, "--entry", help="Entry module (defaults to the device's app_entry)."),
+    no_scan: bool = typer.Option(False, "--no-scan", help="Skip the malware scan for these files."),
+) -> None:
+    """Create a deployment from local app files."""
+    form: dict = {}
+    if name:
+        form["name"] = name
+    if entry:
+        form["entry"] = entry
+    if no_scan:
+        form["scan"] = "false"
+    handles = [p.open("rb") for p in paths]
+    try:
+        files = [("file", (p.name, fh)) for p, fh in zip(paths, handles)]
+        result = _c().post("/deployments", data=form or None, files=files)
+    finally:
+        for fh in handles:
+            fh.close()
+    show_detail(result, title="created")
 
 
 @deployments.command("deploy")

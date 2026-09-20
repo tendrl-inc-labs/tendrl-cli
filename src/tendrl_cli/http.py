@@ -167,7 +167,7 @@ class Client:
             )
 
         payload: Any = None
-        if not raw and resp.content:
+        if resp.content and (not raw or resp.status_code >= 400):
             try:
                 payload = resp.json()
             except ValueError:

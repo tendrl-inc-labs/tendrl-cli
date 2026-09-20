@@ -106,10 +106,26 @@ def accounts_list() -> None:
 
 
 @accounts_app.command("switch")
-def accounts_switch(account: str = typer.Argument(..., help="Account (role path) to switch to.")) -> None:
+def accounts_switch(
+    account: str = typer.Argument(..., help="Account name, number, or path (see 'accounts list')."),
+) -> None:
     """Switch the cached session to another account."""
-    session_client().post("/auth/switch-account", json={"account": account})
-    ok(f"active account is now [bold]{account}[/]")
+    client = session_client()
+    listing = client.get("/auth/user-accounts")
+    rows = listing.get("accounts", listing) if isinstance(listing, dict) else listing
+    match = None
+    for row in rows or []:
+        if account in (row.get("accountPath"), row.get("accountName"),
+                       str(row.get("accountNumber", ""))):
+            match = row
+            break
+    if not match:
+        raise ApiError(f"no account matching '{account}' — run 'tendrl-cli accounts list'")
+    client.post("/auth/switch-account", json={
+        "accountPath": match["accountPath"],
+        "rolePath": match["rolePath"],
+    })
+    ok(f"active account is now [bold]{match.get('accountName') or match['accountPath']}[/]")
 
 
 @accounts_app.command("show")
