@@ -81,3 +81,27 @@ def test_error_message_shapes():
 def test_multiple_accounts_status():
     err = ApiError("login incomplete", payload={"status": "multiple_accounts"})
     assert err.status == "multiple_accounts"
+
+
+def test_for_service_falls_back_to_session(tmp_path, monkeypatch):
+    import json
+    cfg = tmp_path / "tendrl" / "config.json"
+    cfg.parent.mkdir(parents=True, exist_ok=True)
+    cfg.write_text(json.dumps({"session_token": "sess-tok"}))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    for var in ("TENDRL_API_KEY", "CONTACT_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    c = Client.for_service("contact")
+    assert c.token == "sess-tok"
+
+
+def test_for_service_prefers_api_key_over_session(tmp_path, monkeypatch):
+    import json
+    cfg = tmp_path / "tendrl" / "config.json"
+    cfg.parent.mkdir(parents=True, exist_ok=True)
+    cfg.write_text(json.dumps({"session_token": "sess-tok", "api_keys": {"contact": "api-key"}}))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    for var in ("TENDRL_API_KEY", "CONTACT_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    c = Client.for_service("contact")
+    assert c.token == "api-key"
