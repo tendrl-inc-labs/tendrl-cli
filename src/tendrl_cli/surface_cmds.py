@@ -73,14 +73,14 @@ app.add_typer(history, name="history")
 @history.command("list")
 def history_list(limit: int = LIMIT_OPT, offset: int = OFFSET_OPT) -> None:
     """List past scans."""
-    show_list(_s().get("/history", params={"limit": limit, "offset": offset}),
+    show_list(_s().get("/account/history", params={"limit": limit, "offset": offset}),
               "history", "scans", empty="no scans yet")
 
 
 @history.command("get")
 def history_get(scan_id: str) -> None:
     """Show one history entry."""
-    show_detail(_s().get(f"/history/{scan_id}"))
+    show_detail(_s().get(f"/account/history/{scan_id}"))
 
 
 @history.command("export")
@@ -89,7 +89,7 @@ def history_export(
     out: Path = typer.Option(None, "--out", "-o", help="Output file."),
 ) -> None:
     """Export a scan report."""
-    resp = _s().get(f"/history/{scan_id}/export", raw=True)
+    resp = _s().get(f"/account/history/{scan_id}/export", raw=True)
     target = out or Path(f"surface-scan-{scan_id}.json")
     target.write_bytes(resp.content)
     ok(f"exported scan report to {target}")
@@ -110,19 +110,19 @@ def account_show() -> None:
 @account.command("usage")
 def account_usage() -> None:
     """Show scan usage against your plan."""
-    show_detail(_s().get("/usage"), title="usage")
+    show_detail(_s().get("/account/usage"), title="usage")
 
 
 @account.command("analytics")
 def account_analytics() -> None:
     """Show detection analytics."""
-    show_detail(_s().get("/analytics"), title="analytics")
+    show_detail(_s().get("/account/stats/charts"), title="analytics")
 
 
 @account.command("blocked-ips")
 def account_blocked_ips() -> None:
     """List blocked IPs."""
-    show_list(_s().get("/blocked-ips"), "blocked_ips", "ips")
+    show_list(_s().get("/account/blocked-ips"), "blocked_ips", "ips")
 
 
 # ---------------------------------------------------------------- profiles
@@ -134,39 +134,39 @@ app.add_typer(profiles, name="profiles")
 @profiles.command("list")
 def profiles_list() -> None:
     """List scan profiles."""
-    show_list(_s().get("/profiles"), "profiles")
+    show_list(_s().get("/account/profiles"), "profiles")
 
 
 @profiles.command("get")
 def profiles_get(profile_id: str) -> None:
     """Show one profile."""
-    show_detail(_s().get(f"/profiles/{profile_id}"))
+    show_detail(_s().get(f"/account/profiles/{profile_id}"))
 
 
 @profiles.command("create")
 def profiles_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
     """Create a scan profile."""
-    show_detail(_s().post("/profiles", json=parse_body(data, file)), title="created")
+    show_detail(_s().post("/account/profiles", json=parse_body(data, file)), title="created")
 
 
 @profiles.command("update")
 def profiles_update(profile_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
     """Update a scan profile."""
-    show_detail(_s().put(f"/profiles/{profile_id}", json=parse_body(data, file)))
+    show_detail(_s().put(f"/account/profiles/{profile_id}", json=parse_body(data, file)))
 
 
 @profiles.command("delete")
 def profiles_delete(profile_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
     """Delete a scan profile."""
     _confirm(f"profile {profile_id}", yes)
-    _s().delete(f"/profiles/{profile_id}")
+    _s().delete(f"/account/profiles/{profile_id}")
     ok(f"deleted profile {profile_id}")
 
 
 @profiles.command("test-webhook")
 def profiles_test_webhook(profile_id: str) -> None:
     """Send a test event to a profile's webhook."""
-    show_detail(_s().post(f"/profiles/{profile_id}/test-webhook"), title="webhook test")
+    show_detail(_s().post(f"/account/profiles/{profile_id}/test-webhook"), title="webhook test")
 
 
 # ---------------------------------------------------------------- keys
