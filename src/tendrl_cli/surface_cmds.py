@@ -20,6 +20,8 @@ from .common import (
     show_detail,
     show_list,
 )
+from . import config
+from .http import Client
 from .render import ok
 
 app = typer.Typer(help="Surface — file and payload scanning.")
@@ -27,6 +29,20 @@ app = typer.Typer(help="Surface — file and payload scanning.")
 
 def _s():
     return client("surface")
+
+
+LOCAL_OPT = typer.Option(
+    False, "--local", "-l",
+    help="Use a local surface-scanner daemon instead of the hosted API "
+         "(SURFACE_SCANNER_URL or 'config set-scanner'; default http://127.0.0.1:8080).",
+)
+
+
+def _scan_client(local: bool):
+    """Hosted Surface client, or an unauthenticated local-daemon client."""
+    if not local:
+        return _s()
+    return Client("surface", base=config.scanner_url())
 
 
 def _confirm(what: str, yes: bool) -> None:
@@ -43,10 +59,13 @@ app.add_typer(scan, name="scan")
 @scan.command("file")
 def scan_file(
     path: Path = typer.Argument(..., exists=True, readable=True, help="File to scan."),
-    profile: str = typer.Option(None, "--profile", help="Scan profile name or id."),
+    profile: str = typer.Option(None, "--profile", help="Scan profile name or id (hosted only)."),
+    local: bool = LOCAL_OPT,
 ) -> None:
-    """Scan a local file."""
-    c = _s()
+    """Scan a local file — hosted, or on a local scanner daemon with --local."""
+    if local and profile:
+        raise typer.BadParameter("--profile does not apply to --local: the daemon uses the profile linked to its own API key")
+    c = _scan_client(local)
     form = None
     if profile:
         # The API takes a profile_id; resolve a profile name.
@@ -62,15 +81,15 @@ def scan_file(
 
 
 @scan.command("payload")
-def scan_payload(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+def scan_payload(data: str = DATA_OPT, file: Path = FILE_OPT, local: bool = LOCAL_OPT) -> None:
     """Scan an inline payload (JSON body)."""
-    show_detail(_s().post("/scan/payload", json=parse_body(data, file)), title="scan")
+    show_detail(_scan_client(local).post("/scan/payload", json=parse_body(data, file)), title="scan")
 
 
 @scan.command("get")
-def scan_get(scan_id: str) -> None:
+def scan_get(scan_id: str, local: bool = LOCAL_OPT) -> None:
     """Show a scan's result."""
-    show_detail(_s().get(f"/scan/{scan_id}"))
+    show_detail(_scan_client(local).get(f"/scan/{scan_id}"))
 
 
 # ---------------------------------------------------------------- history

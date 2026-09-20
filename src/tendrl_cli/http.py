@@ -103,11 +103,14 @@ class Client:
         *,
         app_url: str | None = None,
         token: str | None = None,
+        base: str | None = None,
     ):
         if service not in SERVICE_PREFIX:
             raise ValueError(f"unknown service: {service}")
         self.service = service
-        self.base = config.app_url(app_url) + SERVICE_PREFIX[service]
+        # An explicit base (e.g. a local surface-scanner daemon) wins over the
+        # platform origin + service prefix.
+        self.base = base.rstrip("/") if base else config.app_url(app_url) + SERVICE_PREFIX[service]
         self.token = token
         self._http = httpx.Client(
             timeout=TIMEOUT,

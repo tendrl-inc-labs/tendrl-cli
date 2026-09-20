@@ -30,10 +30,18 @@ def show() -> None:
     if isinstance(masked.get("api_keys"), dict):
         masked["api_keys"] = {k: v[:8] + "…" for k, v in masked["api_keys"].items()}
     masked.setdefault("app_url", config.app_url())
+    masked.setdefault("scanner_url", config.scanner_url())
     if json_mode():
         print_json(masked)
     else:
         print_detail(masked, title="tendrl-cli config")
+
+
+@app.command("set-scanner")
+def set_scanner(url: str = typer.Argument(..., help="Local surface-scanner daemon URL, e.g. http://127.0.0.1:8080")) -> None:
+    """Set the local scanner daemon URL used by 'surface scan --local'."""
+    config.update(scanner_url=url.rstrip("/"))
+    ok(f"local scanner set to {url.rstrip('/')}")
 
 
 @app.command("set-url")

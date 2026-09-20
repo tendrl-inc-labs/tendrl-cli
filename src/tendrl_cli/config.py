@@ -81,6 +81,21 @@ def api_key(service: str, override: str | None = None) -> str | None:
     return keys.get(service)
 
 
+DEFAULT_SCANNER_URL = "http://127.0.0.1:8080"
+ENV_SCANNER_URL = "SURFACE_SCANNER_URL"
+
+
+def scanner_url(override: str | None = None) -> str:
+    """Base URL of a local surface-scanner daemon (``--daemon`` mode)."""
+    url = (
+        override
+        or os.environ.get(ENV_SCANNER_URL)
+        or load().get("scanner_url")
+        or DEFAULT_SCANNER_URL
+    )
+    return url.rstrip("/")
+
+
 def session_token() -> str | None:
     return load().get("session_token")
 
