@@ -87,7 +87,7 @@ def scan_payload(data: str = DATA_OPT, file: Path = FILE_OPT, local: bool = LOCA
 
 
 @scan.command("get")
-def scan_get(scan_id: str, local: bool = LOCAL_OPT) -> None:
+def scan_get(scan_id: str = typer.Argument(..., help="Scan id (the requestId from a scan or history entry)."), local: bool = LOCAL_OPT) -> None:
     """Show a scan's result."""
     show_detail(_scan_client(local).get(f"/scan/{scan_id}"))
 
@@ -106,14 +106,14 @@ def history_list(limit: int = LIMIT_OPT, offset: int = OFFSET_OPT) -> None:
 
 
 @history.command("get")
-def history_get(scan_id: str) -> None:
+def history_get(scan_id: str = typer.Argument(..., help="Scan id (the requestId from a scan or history entry).")) -> None:
     """Show one history entry."""
     show_detail(_s().get(f"/account/history/{scan_id}"))
 
 
 @history.command("export")
 def history_export(
-    scan_id: str,
+    scan_id: str = typer.Argument(..., help="Scan id (the requestId from a scan or history entry)."),
     out: Path = typer.Option(None, "--out", "-o", help="Output file."),
 ) -> None:
     """Export a scan report."""
@@ -166,7 +166,7 @@ def profiles_list() -> None:
 
 
 @profiles.command("get")
-def profiles_get(profile_id: str) -> None:
+def profiles_get(profile_id: str = typer.Argument(..., help="Profile id (see 'profiles list').")) -> None:
     """Show one profile."""
     show_detail(_s().get(f"/account/profiles/{profile_id}"))
 
@@ -178,13 +178,13 @@ def profiles_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @profiles.command("update")
-def profiles_update(profile_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+def profiles_update(profile_id: str = typer.Argument(..., help="Profile id (see 'profiles list')."), data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
     """Update a scan profile."""
     show_detail(_s().put(f"/account/profiles/{profile_id}", json=parse_body(data, file)))
 
 
 @profiles.command("delete")
-def profiles_delete(profile_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def profiles_delete(profile_id: str = typer.Argument(..., help="Profile id (see 'profiles list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a scan profile."""
     _confirm(f"profile {profile_id}", yes)
     _s().delete(f"/account/profiles/{profile_id}")
@@ -192,7 +192,7 @@ def profiles_delete(profile_id: str, yes: bool = typer.Option(False, "--yes", "-
 
 
 @profiles.command("test-webhook")
-def profiles_test_webhook(profile_id: str) -> None:
+def profiles_test_webhook(profile_id: str = typer.Argument(..., help="Profile id (see 'profiles list').")) -> None:
     """Send a test event to a profile's webhook."""
     show_detail(_s().post(f"/account/profiles/{profile_id}/test-webhook"), title="webhook test")
 
@@ -216,7 +216,7 @@ def keys_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @keys.command("delete")
-def keys_delete(key_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def keys_delete(key_id: str = typer.Argument(..., help="API key id (see 'keys list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete an API key."""
     _confirm(f"API key {key_id}", yes)
     _s().delete(f"/api-keys/{key_id}")

@@ -51,7 +51,7 @@ def entities_list(limit: int = LIMIT_OPT, offset: int = OFFSET_OPT) -> None:
 
 
 @entities.command("get")
-def entities_get(entity_id: str) -> None:
+def entities_get(entity_id: str = typer.Argument(..., help="Entity name.")) -> None:
     """Show one entity."""
     show_detail(_c().get(f"/entities/{entity_id}"), title=entity_id)
 
@@ -63,13 +63,13 @@ def entities_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @entities.command("update")
-def entities_update(entity_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+def entities_update(entity_id: str = typer.Argument(..., help="Entity name."), data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
     """Update an entity."""
     show_detail(_c().patch(f"/entities/{entity_id}", json=parse_body(data, file)))
 
 
 @entities.command("delete")
-def entities_delete(entity_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def entities_delete(entity_id: str = typer.Argument(..., help="Entity name."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete an entity."""
     _confirm(f"entity {entity_id}", yes)
     _c().delete(f"/entities/{entity_id}")
@@ -77,33 +77,33 @@ def entities_delete(entity_id: str, yes: bool = typer.Option(False, "--yes", "-y
 
 
 @entities.command("reboot")
-def entities_reboot(entity_id: str) -> None:
+def entities_reboot(entity_id: str = typer.Argument(..., help="Entity name.")) -> None:
     """Ask a device to reboot."""
     _c().post(f"/entities/{entity_id}/reboot")
     ok(f"reboot requested for {entity_id}")
 
 
 @entities.command("heartbeat")
-def entities_heartbeat(entity_id: str) -> None:
+def entities_heartbeat(entity_id: str = typer.Argument(..., help="Entity name.")) -> None:
     """Show an entity's last heartbeat."""
     show_detail(_c().get(f"/entities/{entity_id}/heartbeat"), title="heartbeat")
 
 
 @entities.command("state")
-def entities_state(entity_id: str) -> None:
+def entities_state(entity_id: str = typer.Argument(..., help="Entity name.")) -> None:
     """Show an entity's state table."""
     show_detail(_c().get(f"/entities/{entity_id}/status-table"), title=f"{entity_id} state")
 
 
 @entities.command("provision-payload")
-def entities_provision_payload(entity_id: str) -> None:
+def entities_provision_payload(entity_id: str = typer.Argument(..., help="Entity name.")) -> None:
     """Fetch the provisioning payload for a device."""
     payload = _c().get(f"/entities/{entity_id}/provision-payload")
     print_json(payload) if json_mode() else show_detail(payload, title="provision payload")
 
 
 @entities.command("rotate-key")
-def entities_rotate_key(entity_id: str) -> None:
+def entities_rotate_key(entity_id: str = typer.Argument(..., help="Entity name.")) -> None:
     """Rotate a device's entity key (returned once)."""
     show_detail(_c().post(f"/entities/{entity_id}/provision-rotate-key"), title="new key")
 
@@ -139,7 +139,7 @@ def messages_list(
 
 
 @messages.command("get")
-def messages_get(message_id: str) -> None:
+def messages_get(message_id: str = typer.Argument(..., help="Message id.")) -> None:
     """Show one message."""
     show_detail(_c().get(f"/entities/messages/{message_id}"))
 
@@ -175,7 +175,7 @@ def files_list(limit: int = LIMIT_OPT, offset: int = OFFSET_OPT) -> None:
 
 
 @files.command("get")
-def files_get(file_id: str) -> None:
+def files_get(file_id: str = typer.Argument(..., help="File id (see 'files list').")) -> None:
     """Show file metadata."""
     show_detail(_c().get(f"/entities/files/{file_id}"))
 
@@ -197,7 +197,7 @@ def files_upload(
 
 @files.command("download")
 def files_download(
-    file_id: str,
+    file_id: str = typer.Argument(..., help="File id (see 'files list')."),
     out: Path = typer.Option(None, "--out", "-o", help="Output path (default: file id)."),
 ) -> None:
     """Download a file's bytes."""
@@ -208,7 +208,7 @@ def files_download(
 
 
 @files.command("delete")
-def files_delete(file_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def files_delete(file_id: str = typer.Argument(..., help="File id (see 'files list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a file."""
     _confirm(f"file {file_id}", yes)
     _c().delete(f"/files/{file_id}")
@@ -216,7 +216,7 @@ def files_delete(file_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -
 
 
 @files.command("rescan")
-def files_rescan(file_id: str) -> None:
+def files_rescan(file_id: str = typer.Argument(..., help="File id (see 'files list').")) -> None:
     """Re-run the Surface scan on a stored file."""
     show_detail(_c().post(f"/entities/files/{file_id}/rescan"), title="rescan")
 
@@ -234,7 +234,7 @@ def fanouts_list() -> None:
 
 
 @fanouts.command("get")
-def fanouts_get(fanout_id: str) -> None:
+def fanouts_get(fanout_id: str = typer.Argument(..., help="Fanout name.")) -> None:
     """Show one fanout."""
     show_detail(_c().get(f"/fanouts/{fanout_id}"))
 
@@ -246,7 +246,7 @@ def fanouts_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @fanouts.command("delete")
-def fanouts_delete(fanout_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def fanouts_delete(fanout_id: str = typer.Argument(..., help="Fanout name."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a fanout."""
     _confirm(f"fanout {fanout_id}", yes)
     _c().delete(f"/fanouts/{fanout_id}")
@@ -254,7 +254,7 @@ def fanouts_delete(fanout_id: str, yes: bool = typer.Option(False, "--yes", "-y"
 
 
 @fanouts.command("add")
-def fanouts_add(fanout_id: str, entity: str = typer.Argument(..., help="Entity name or resource path.")) -> None:
+def fanouts_add(fanout_id: str = typer.Argument(..., help="Fanout name."), entity: str = typer.Argument(..., help="Entity name or resource path.")) -> None:
     """Add an entity to a fanout."""
     c = _c()
     # The API wants the entity's full resource path; resolve a bare name.
@@ -264,14 +264,14 @@ def fanouts_add(fanout_id: str, entity: str = typer.Argument(..., help="Entity n
 
 
 @fanouts.command("remove")
-def fanouts_remove(fanout_id: str, entity_id: str) -> None:
+def fanouts_remove(fanout_id: str = typer.Argument(..., help="Fanout name."), entity_id: str = typer.Argument(..., help="Entity name.")) -> None:
     """Remove an entity from a fanout."""
     _c().delete(f"/fanouts/{fanout_id}/entities/{entity_id}")
     ok(f"removed {entity_id} from {fanout_id}")
 
 
 @fanouts.command("publish")
-def fanouts_publish(fanout_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+def fanouts_publish(fanout_id: str = typer.Argument(..., help="Fanout name."), data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
     """Publish a message to every entity in a fanout."""
     show_detail(_c().post(f"/fanouts/{fanout_id}/publish", json=parse_body(data, file)),
                 title="published")
@@ -288,7 +288,7 @@ def directories_list() -> None:
 
 
 @directories.command("get")
-def directories_get(directory_id: str) -> None:
+def directories_get(directory_id: str = typer.Argument(..., help="Directory id (see 'directories list').")) -> None:
     """Show one directory."""
     show_detail(_c().get(f"/directories/{directory_id}"))
 
@@ -300,7 +300,7 @@ def directories_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @directories.command("delete")
-def directories_delete(directory_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def directories_delete(directory_id: str = typer.Argument(..., help="Directory id (see 'directories list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a directory."""
     _confirm(f"directory {directory_id}", yes)
     _c().delete(f"/directories/{directory_id}")
@@ -308,7 +308,7 @@ def directories_delete(directory_id: str, yes: bool = typer.Option(False, "--yes
 
 
 @directories.command("move")
-def directories_move(directory_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+def directories_move(directory_id: str = typer.Argument(..., help="Directory id (see 'directories list')."), data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
     """Move a directory."""
     show_detail(_c().post(f"/directories/{directory_id}/move", json=parse_body(data, file)))
 
@@ -326,15 +326,15 @@ def dashboards_list() -> None:
 
 
 @dashboards.command("get")
-def dashboards_get(dashboard_id: str) -> None:
+def dashboards_get(dashboard_id: str = typer.Argument(..., help="Dashboard id (see 'dashboards list').")) -> None:
     """Show one dashboard."""
     show_detail(_c().get(f"/dashboards/{dashboard_id}"))
 
 
 @dashboards.command("fields")
 def dashboards_fields(
-    service: str = typer.Option(None, "--service"),
-    entity: str = typer.Option(None, "--entity"),
+    service: str = typer.Option(None, "--service", help="Service (payload schema) to inspect fields for."),
+    entity: str = typer.Option(None, "--entity", help="Restrict field discovery to one entity."),
 ) -> None:
     """Discover queryable data fields."""
     show_list(_c().get("/dashboards/fields", params={"service": service, "entity": entity}),
@@ -359,7 +359,7 @@ def alerts_list() -> None:
 
 
 @alerts.command("get")
-def alerts_get(alert_id: str) -> None:
+def alerts_get(alert_id: str = typer.Argument(..., help="Alert id (see 'alerts list').")) -> None:
     """Show one alert."""
     show_detail(_c().get(f"/alerts/{alert_id}"))
 
@@ -371,13 +371,13 @@ def alerts_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @alerts.command("update")
-def alerts_update(alert_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+def alerts_update(alert_id: str = typer.Argument(..., help="Alert id (see 'alerts list')."), data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
     """Update an alert."""
     show_detail(_c().patch(f"/alerts/{alert_id}", json=parse_body(data, file)))
 
 
 @alerts.command("delete")
-def alerts_delete(alert_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def alerts_delete(alert_id: str = typer.Argument(..., help="Alert id (see 'alerts list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete an alert."""
     _confirm(f"alert {alert_id}", yes)
     _c().delete(f"/alerts/{alert_id}")
@@ -385,7 +385,7 @@ def alerts_delete(alert_id: str, yes: bool = typer.Option(False, "--yes", "-y"))
 
 
 @alerts.command("test")
-def alerts_test(alert_id: str) -> None:
+def alerts_test(alert_id: str = typer.Argument(..., help="Alert id (see 'alerts list').")) -> None:
     """Fire a test of an alert."""
     show_detail(_c().post(f"/alerts/{alert_id}/test"), title="test result")
 
@@ -403,7 +403,7 @@ def flows_list() -> None:
 
 
 @flows.command("get")
-def flows_get(flow_id: str) -> None:
+def flows_get(flow_id: str = typer.Argument(..., help="Flow id (see 'flows list').")) -> None:
     """Show one flow."""
     show_detail(_c().get(f"/flows/{flow_id}"))
 
@@ -437,7 +437,7 @@ def services_list() -> None:
 
 
 @services.command("get")
-def services_get(service_id: str) -> None:
+def services_get(service_id: str = typer.Argument(..., help="Service name.")) -> None:
     """Show one service."""
     show_detail(_c().get(f"/services/{service_id}"))
 
@@ -449,7 +449,7 @@ def services_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @services.command("delete")
-def services_delete(service_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def services_delete(service_id: str = typer.Argument(..., help="Service name."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a service."""
     _confirm(f"service {service_id}", yes)
     _c().delete(f"/services/{service_id}")
@@ -501,7 +501,7 @@ def keys_list() -> None:
 
 
 @keys.command("get")
-def keys_get(key_id: str) -> None:
+def keys_get(key_id: str = typer.Argument(..., help="API key id (see 'keys list').")) -> None:
     """Show one API key."""
     show_detail(_c().get(f"/api_keys/{key_id}"))
 
@@ -513,13 +513,13 @@ def keys_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @keys.command("rotate")
-def keys_rotate(key_id: str) -> None:
+def keys_rotate(key_id: str = typer.Argument(..., help="API key id (see 'keys list').")) -> None:
     """Rotate an API key (new token shown once)."""
     show_detail(_c().post(f"/api_keys/{key_id}/rotate"), title="rotated — token shown once")
 
 
 @keys.command("delete")
-def keys_delete(key_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def keys_delete(key_id: str = typer.Argument(..., help="API key id (see 'keys list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete an API key."""
     _confirm(f"API key {key_id}", yes)
     _c().delete(f"/api_keys/{key_id}")
@@ -537,14 +537,14 @@ def users_list() -> None:
 
 
 @users.command("set-role")
-def users_set_role(user_id: str, role: str = typer.Argument(..., help="Role name.")) -> None:
+def users_set_role(user_id: str = typer.Argument(..., help="User id (see 'users list' / 'team list')."), role: str = typer.Argument(..., help="Role name.")) -> None:
     """Change a user's role."""
     _c().patch(f"/users/{user_id}/role", json={"role": role})
     ok(f"user {user_id} role set to {role}")
 
 
 @users.command("remove")
-def users_remove(user_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def users_remove(user_id: str = typer.Argument(..., help="User id (see 'users list' / 'team list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Remove a user from the account."""
     _confirm(f"user {user_id}", yes)
     _c().delete(f"/users/{user_id}")
@@ -558,7 +558,7 @@ def users_invites() -> None:
 
 
 @users.command("invite")
-def users_invite(email: str, role: str = typer.Option(None, "--role")) -> None:
+def users_invite(email: str = typer.Argument(..., help="Email address to invite."), role: str = typer.Option(None, "--role", help="Role for the invited user (e.g. ReadOnly).")) -> None:
     """Invite a user to the account."""
     body = {"email": email}
     if role:
@@ -567,7 +567,7 @@ def users_invite(email: str, role: str = typer.Option(None, "--role")) -> None:
 
 
 @users.command("revoke-invite")
-def users_revoke_invite(invite_id: str) -> None:
+def users_revoke_invite(invite_id: str = typer.Argument(..., help="Invite id (see 'users invites').")) -> None:
     """Revoke a pending invite."""
     _c().delete(f"/user_invites/{invite_id}")
     ok(f"revoked invite {invite_id}")
@@ -584,7 +584,7 @@ def roles_list() -> None:
 
 
 @roles.command("get")
-def roles_get(role_id: str) -> None:
+def roles_get(role_id: str = typer.Argument(..., help="Role name.")) -> None:
     """Show one role."""
     show_detail(_c().get(f"/roles/{role_id}"))
 
@@ -596,7 +596,7 @@ def roles_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @roles.command("delete")
-def roles_delete(role_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def roles_delete(role_id: str = typer.Argument(..., help="Role name."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a role."""
     _confirm(f"role {role_id}", yes)
     _c().delete(f"/roles/{role_id}")
@@ -614,7 +614,7 @@ def policies_list() -> None:
 
 
 @policies.command("get")
-def policies_get(policy_id: str) -> None:
+def policies_get(policy_id: str = typer.Argument(..., help="Policy name.")) -> None:
     """Show one policy."""
     show_detail(_c().get(f"/policies/{policy_id}"))
 
@@ -626,7 +626,7 @@ def policies_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @policies.command("delete")
-def policies_delete(policy_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def policies_delete(policy_id: str = typer.Argument(..., help="Policy name."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a policy."""
     _confirm(f"policy {policy_id}", yes)
     _c().delete(f"/policies/{policy_id}")
@@ -647,7 +647,7 @@ def audit_list(limit: int = LIMIT_OPT, offset: int = OFFSET_OPT) -> None:
 
 
 @audit.command("export")
-def audit_export(out: Path = typer.Option(None, "--out", "-o")) -> None:
+def audit_export(out: Path = typer.Option(None, "--out", "-o", help="Output file (default tendrl-audit-log.csv).")) -> None:
     """Export the audit log."""
     resp = _c().get("/audit-log/export", raw=True)
     target = out or Path("tendrl-audit-log.csv")
@@ -666,7 +666,7 @@ def deployments_list() -> None:
 
 
 @deployments.command("get")
-def deployments_get(deployment_id: str) -> None:
+def deployments_get(deployment_id: str = typer.Argument(..., help="Deployment id (see 'deployments list').")) -> None:
     """Show one deployment."""
     show_detail(_c().get(f"/deployments/{deployment_id}"))
 
@@ -698,6 +698,6 @@ def deployments_create(
 
 
 @deployments.command("deploy")
-def deployments_deploy(deployment_id: str) -> None:
+def deployments_deploy(deployment_id: str = typer.Argument(..., help="Deployment id (see 'deployments list').")) -> None:
     """Roll out a deployment to its targets."""
     show_detail(_c().post(f"/deployments/{deployment_id}/deploy"), title="deploying")

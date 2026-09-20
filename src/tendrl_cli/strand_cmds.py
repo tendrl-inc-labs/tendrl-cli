@@ -51,7 +51,7 @@ def workflows_list(limit: int = LIMIT_OPT, offset: int = OFFSET_OPT) -> None:
 
 
 @workflows.command("get")
-def workflows_get(workflow_id: str) -> None:
+def workflows_get(workflow_id: str = typer.Argument(..., help="Workflow id (see 'workflows list').")) -> None:
     """Show one workflow."""
     show_detail(_s().get(f"/workflows/{workflow_id}"))
 
@@ -63,13 +63,13 @@ def workflows_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @workflows.command("update")
-def workflows_update(workflow_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+def workflows_update(workflow_id: str = typer.Argument(..., help="Workflow id (see 'workflows list')."), data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
     """Update a workflow's settings (name, schedule, tags, active)."""
     show_detail(_s().put(f"/workflows/{workflow_id}", json=parse_body(data, file)))
 
 
 @workflows.command("delete")
-def workflows_delete(workflow_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def workflows_delete(workflow_id: str = typer.Argument(..., help="Workflow id (see 'workflows list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a workflow."""
     _confirm(f"workflow {workflow_id}", yes)
     _s().delete(f"/workflows/{workflow_id}")
@@ -78,7 +78,7 @@ def workflows_delete(workflow_id: str, yes: bool = typer.Option(False, "--yes", 
 
 @workflows.command("run")
 def workflows_run(
-    workflow_id: str,
+    workflow_id: str = typer.Argument(..., help="Workflow id (see 'workflows list')."),
     data: str = typer.Option(None, "--data", "-d", help="JSON input payload (optional)."),
     file: Path = FILE_OPT,
     version: str = typer.Option(None, "--version", help="Run a specific version id."),
@@ -93,7 +93,7 @@ def workflows_run(
 
 
 @workflows.command("save")
-def workflows_save(workflow_id: str, data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
+def workflows_save(workflow_id: str = typer.Argument(..., help="Workflow id (see 'workflows list')."), data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
     """Save a new immutable version of a workflow's graph.
 
     The body is the graph: {"nodes": {...}, "edges": [...], "variables": {...}}.
@@ -105,14 +105,14 @@ def workflows_save(workflow_id: str, data: str = DATA_OPT, file: Path = FILE_OPT
 
 
 @workflows.command("versions")
-def workflows_versions(workflow_id: str) -> None:
+def workflows_versions(workflow_id: str = typer.Argument(..., help="Workflow id (see 'workflows list').")) -> None:
     """List a workflow's versions."""
     show_list(_s().get(f"/workflows/{workflow_id}/versions"), "versions")
 
 
 @workflows.command("export")
 def workflows_export(
-    workflow_id: str,
+    workflow_id: str = typer.Argument(..., help="Workflow id (see 'workflows list')."),
     out: Path = typer.Option(None, "--out", "-o", help="Output file (default <id>.json)."),
 ) -> None:
     """Export a workflow to a JSON file."""
@@ -124,7 +124,7 @@ def workflows_export(
 
 @workflows.command("import")
 def workflows_import(
-    path: Path = typer.Argument(..., exists=True, readable=True),
+    path: Path = typer.Argument(..., exists=True, readable=True, help="Exported workflow JSON file."),
     name: str = typer.Option(None, "--name", help="Name for the imported workflow."),
 ) -> None:
     """Import a workflow from an exported JSON file."""
@@ -160,20 +160,20 @@ def runs_list(
 
 
 @runs.command("get")
-def runs_get(run_id: str) -> None:
+def runs_get(run_id: str = typer.Argument(..., help="Run id (see 'runs list').")) -> None:
     """Show one run."""
     show_detail(_s().get(f"/runs/{run_id}"))
 
 
 @runs.command("steps")
-def runs_steps(run_id: str) -> None:
+def runs_steps(run_id: str = typer.Argument(..., help="Run id (see 'runs list').")) -> None:
     """List a run's steps."""
     show_list(_s().get(f"/runs/{run_id}/steps"), "steps")
 
 
 @runs.command("cancel")
 def runs_cancel(
-    run_id: str,
+    run_id: str = typer.Argument(..., help="Run id (see 'runs list')."),
     reason: str = typer.Option(None, "--reason", help="Why the run is being cancelled."),
 ) -> None:
     """Cancel a run."""
@@ -183,8 +183,8 @@ def runs_cancel(
 
 @runs.command("approve")
 def runs_approve(
-    run_id: str,
-    step_run_id: str,
+    run_id: str = typer.Argument(..., help="Run id (see 'runs list')."),
+    step_run_id: str = typer.Argument(..., help="Step run id (see 'runs steps')."),
     comment: str = typer.Option(None, "--comment", help="Note for the audit trail."),
 ) -> None:
     """Approve a paused approval step."""
@@ -194,8 +194,8 @@ def runs_approve(
 
 @runs.command("reject")
 def runs_reject(
-    run_id: str,
-    step_run_id: str,
+    run_id: str = typer.Argument(..., help="Run id (see 'runs list')."),
+    step_run_id: str = typer.Argument(..., help="Step run id (see 'runs steps')."),
     comment: str = typer.Option(None, "--comment", help="Note for the audit trail."),
 ) -> None:
     """Reject a paused approval step."""
@@ -225,7 +225,7 @@ def connectors_list(
 
 
 @connectors.command("get")
-def connectors_get(connector_id: str) -> None:
+def connectors_get(connector_id: str = typer.Argument(..., help="Connector id (see 'connectors list').")) -> None:
     """Show one connector."""
     show_detail(_s().get(f"/connectors/{connector_id}"))
 
@@ -237,7 +237,7 @@ def connectors_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @connectors.command("delete")
-def connectors_delete(connector_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def connectors_delete(connector_id: str = typer.Argument(..., help="Connector id (see 'connectors list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a connector."""
     _confirm(f"connector {connector_id}", yes)
     _s().delete(f"/connectors/{connector_id}")
@@ -278,7 +278,7 @@ def functions_list() -> None:
 
 
 @functions.command("get")
-def functions_get(function_id: str) -> None:
+def functions_get(function_id: str = typer.Argument(..., help="Function id (see 'functions list').")) -> None:
     """Show one function."""
     show_detail(_s().get(f"/functions/{function_id}"))
 
@@ -290,7 +290,7 @@ def functions_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @functions.command("delete")
-def functions_delete(function_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def functions_delete(function_id: str = typer.Argument(..., help="Function id (see 'functions list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a function."""
     _confirm(f"function {function_id}", yes)
     _s().delete(f"/functions/{function_id}")
@@ -332,9 +332,9 @@ def vault_list() -> None:
 
 @vault.command("set")
 def vault_set(
-    key: str,
+    key: str = typer.Argument(..., help="Secret key name."),
     value: str = typer.Argument(None, help="Secret value (prompted if omitted)."),
-    description: str = typer.Option(None, "--description"),
+    description: str = typer.Option(None, "--description", help="What this secret is for."),
 ) -> None:
     """Store a secret."""
     from rich.prompt import Prompt
@@ -348,7 +348,7 @@ def vault_set(
 
 
 @vault.command("delete")
-def vault_delete(vault_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def vault_delete(vault_id: str = typer.Argument(..., help="Secret id (see 'vault list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a secret."""
     _confirm(f"secret {vault_id}", yes)
     _s().delete(f"/vault/{vault_id}")
@@ -370,7 +370,7 @@ def configurations_list(
 
 
 @configurations.command("get")
-def configurations_get(configuration_id: str) -> None:
+def configurations_get(configuration_id: str = typer.Argument(..., help="Configuration id (see 'configurations list').")) -> None:
     """Show one configuration."""
     show_detail(_s().get(f"/configurations/{configuration_id}"))
 
@@ -382,7 +382,7 @@ def configurations_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @configurations.command("delete")
-def configurations_delete(configuration_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def configurations_delete(configuration_id: str = typer.Argument(..., help="Configuration id (see 'configurations list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete a configuration."""
     _confirm(f"configuration {configuration_id}", yes)
     _s().delete(f"/configurations/{configuration_id}")
@@ -397,28 +397,28 @@ app.add_typer(templates, name="templates")
 
 @templates.command("list")
 def templates_list(
-    category: str = typer.Option(None, "--category"),
-    tag: str = typer.Option(None, "--tag"),
+    category: str = typer.Option(None, "--category", help="Filter by template category."),
+    tag: str = typer.Option(None, "--tag", help="Filter by template tag."),
 ) -> None:
     """List templates."""
     show_list(_s().get("/templates", params={"category": category, "tag": tag}), "templates")
 
 
 @templates.command("get")
-def templates_get(template_id: str) -> None:
+def templates_get(template_id: str = typer.Argument(..., help="Template id (see 'templates list').")) -> None:
     """Show one template."""
     show_detail(_s().get(f"/templates/{template_id}"))
 
 
 @templates.command("readiness")
-def templates_readiness(template_id: str) -> None:
+def templates_readiness(template_id: str = typer.Argument(..., help="Template id (see 'templates list').")) -> None:
     """Check what a template needs before it can run for you."""
     show_detail(_s().get(f"/templates/{template_id}/readiness"), title="readiness")
 
 
 @templates.command("use")
 def templates_use(
-    template_id: str,
+    template_id: str = typer.Argument(..., help="Template id (see 'templates list')."),
     name: str = typer.Option(None, "--name", help="Name for the new workflow."),
 ) -> None:
     """Create a workflow from a template."""
@@ -445,13 +445,13 @@ def keys_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
 
 
 @keys.command("rotate")
-def keys_rotate(key_id: str) -> None:
+def keys_rotate(key_id: str = typer.Argument(..., help="API key id (see 'keys list').")) -> None:
     """Rotate an API key (new token shown once)."""
     show_detail(_s().post(f"/api-keys/{key_id}/rotate"), title="rotated — token shown once")
 
 
 @keys.command("delete")
-def keys_delete(key_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def keys_delete(key_id: str = typer.Argument(..., help="API key id (see 'keys list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Delete an API key."""
     _confirm(f"API key {key_id}", yes)
     _s().delete(f"/api-keys/{key_id}")
@@ -479,7 +479,7 @@ def _role_id(client, role: str) -> str:
 
 
 @team.command("invite")
-def team_invite(email: str, role: str = typer.Option("Viewer", "--role", help="Role name or id (see 'strand roles list').")) -> None:
+def team_invite(email: str = typer.Argument(..., help="Email address to invite."), role: str = typer.Option("Viewer", "--role", help="Role name or id (see 'strand roles list').")) -> None:
     """Invite a team member."""
     c = _s()
     show_detail(c.post("/team/invite", json={"email": email, "role_id": _role_id(c, role)}),
@@ -487,7 +487,7 @@ def team_invite(email: str, role: str = typer.Option("Viewer", "--role", help="R
 
 
 @team.command("set-role")
-def team_set_role(user_id: str, role: str = typer.Argument(..., help="Role name or id.")) -> None:
+def team_set_role(user_id: str = typer.Argument(..., help="User id (see 'users list' / 'team list')."), role: str = typer.Argument(..., help="Role name or id.")) -> None:
     """Change a member's role."""
     c = _s()
     c.put(f"/team/{user_id}/role", json={"role_id": _role_id(c, role)})
@@ -495,7 +495,7 @@ def team_set_role(user_id: str, role: str = typer.Argument(..., help="Role name 
 
 
 @team.command("remove")
-def team_remove(user_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
+def team_remove(user_id: str = typer.Argument(..., help="User id (see 'users list' / 'team list')."), yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt.")) -> None:
     """Remove a team member."""
     _confirm(f"team member {user_id}", yes)
     _s().delete(f"/team/{user_id}")
@@ -513,7 +513,7 @@ def roles_list() -> None:
 
 
 @roles.command("get")
-def roles_get(role_id: str) -> None:
+def roles_get(role_id: str = typer.Argument(..., help="Role name.")) -> None:
     """Show one role."""
     show_detail(_s().get(f"/roles/{role_id}"))
 
@@ -545,8 +545,8 @@ for _name, _help in [
 
 @app.command("audit")
 def audit_list(
-    resource_type: str = typer.Option(None, "--resource-type"),
-    action: str = typer.Option(None, "--action"),
+    resource_type: str = typer.Option(None, "--resource-type", help="Filter by resource type (e.g. workflow, connector)."),
+    action: str = typer.Option(None, "--action", help="Filter by action (e.g. create, delete)."),
     limit: int = LIMIT_OPT,
     offset: int = OFFSET_OPT,
 ) -> None:
