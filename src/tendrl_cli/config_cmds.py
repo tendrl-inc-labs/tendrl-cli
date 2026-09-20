@@ -46,7 +46,7 @@ def set_scanner(url: str = typer.Argument(..., help="Local surface-scanner daemo
 
 @app.command("set-url")
 def set_url(url: str = typer.Argument(..., help="Platform origin, e.g. https://app.tendrl.com")) -> None:
-    """Set the platform URL (dev stacks, staging)."""
+    """Set the platform URL the CLI talks to."""
     config.update(app_url=url.rstrip("/"))
     ok(f"app url set to {url.rstrip('/')}")
 
