@@ -46,8 +46,25 @@ app.add_typer(entities, name="entities")
 @entities.command("list")
 def entities_list(limit: int = LIMIT_OPT, offset: int = OFFSET_OPT) -> None:
     """List entities."""
-    show_list(_c().get("/entities", params={"limit": limit, "offset": offset}),
-              "entities", empty="no entities yet — register one with 'entities create'")
+    payload = _c().get("/entities", params={"limit": limit, "offset": offset})
+    if json_mode():
+        print_json(payload)
+        return
+    from .common import extract_list
+    from .render import print_records
+
+    records, total = extract_list(payload, "entities")
+    rows = [{
+        "name": r.get("name"),
+        "status": ("online" if (r.get("status") or {}).get("online") else "offline")
+                  if isinstance(r.get("status"), dict) else r.get("status"),
+        "role": r.get("role"),
+        "mqtt": r.get("mqtt"),
+        "service": r.get("service"),
+        "created at": r.get("createdAt"),
+    } for r in records]
+    print_records(rows, total=total,
+                  empty="no entities yet — register one with 'entities create'")
 
 
 @entities.command("get")

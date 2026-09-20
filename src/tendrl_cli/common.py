@@ -94,6 +94,8 @@ def show_detail(payload: Any, *, title: str | None = None) -> None:
     if json_mode():
         print_json(payload)
         return
+    if isinstance(payload, dict) and set(payload) == {"data"} and isinstance(payload["data"], dict):
+        payload = payload["data"]
     if isinstance(payload, dict):
         print_detail(payload, title=title)
     elif payload is not None:

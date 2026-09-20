@@ -183,8 +183,11 @@ class Client:
                 request_id=request_id,
             )
         if resp.status_code >= 400:
+            message = error_message(payload, resp.status_code)
+            if message.startswith("request failed"):
+                message = f"HTTP {resp.status_code} for {path}"
             raise ApiError(
-                error_message(payload, resp.status_code),
+                message,
                 status_code=resp.status_code,
                 payload=payload,
                 request_id=request_id,
