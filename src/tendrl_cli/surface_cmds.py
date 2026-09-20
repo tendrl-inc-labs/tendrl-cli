@@ -1,7 +1,6 @@
 """Surface commands: scans, history, profiles, account.
 
-Authenticates with a Surface API key (``SURFACE_KEY``, format
-``sfk_xxx.secret``).
+Authenticates with a Surface API key (``SURFACE_KEY``).
 """
 
 from __future__ import annotations

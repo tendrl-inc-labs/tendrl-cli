@@ -19,7 +19,7 @@ or with pipx / pip:
 pipx install git+https://github.com/tendrl-inc-labs/tendrl-cli
 ```
 
-Requires Python 3.10+.
+Requires Python 3.10+. Full documentation: [tendrl.com/docs](https://tendrl.com/docs/contact/sdks/cli/getting-started/).
 
 ## Quick start
 
@@ -77,11 +77,11 @@ tendrl-cli
 ├── contact   entities · messages · files · fanouts · directories ·
 │             dashboards · alerts · flows · services · insights ·
 │             keys · users · roles · policies · audit · deployments
-├── strand    workflows · runs · connectors · functions · vault ·
-│             connections · configurations · templates · keys ·
-│             team · roles · usage · audit · whoami
-├── surface   scan · history · account · profiles · keys
-├── config    show · path · set-url · set-key · unset-key
+├── strand    workflows (save/run/versions/export/import) · runs ·
+│             connectors · functions · vault · configurations ·
+│             templates · keys · team · roles · usage · audit · whoami
+├── surface   scan (file/payload, --local daemon) · history · account · profiles · keys
+├── config    show · path · set-url · set-key · unset-key · set-scanner
 └── api       <service> <METHOD> <path>   raw escape hatch
 ```
 
