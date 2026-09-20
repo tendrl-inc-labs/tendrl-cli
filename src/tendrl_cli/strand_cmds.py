@@ -355,37 +355,7 @@ def vault_delete(vault_id: str, yes: bool = typer.Option(False, "--yes", "-y")) 
     ok(f"deleted secret {vault_id}")
 
 
-# ---------------------------------------------------------------- connections & configurations
-
-connections = typer.Typer(help="Database/host connection credentials.")
-app.add_typer(connections, name="connections")
-
-
-@connections.command("list")
-def connections_list() -> None:
-    """List connections."""
-    show_list(_s().get("/connections"), "connections")
-
-
-@connections.command("get")
-def connections_get(connection_id: str) -> None:
-    """Show one connection."""
-    show_detail(_s().get(f"/connections/{connection_id}"))
-
-
-@connections.command("create")
-def connections_create(data: str = DATA_OPT, file: Path = FILE_OPT) -> None:
-    """Create a connection."""
-    show_detail(_s().post("/connections", json=parse_body(data, file)), title="created")
-
-
-@connections.command("delete")
-def connections_delete(connection_id: str, yes: bool = typer.Option(False, "--yes", "-y")) -> None:
-    """Delete a connection."""
-    _confirm(f"connection {connection_id}", yes)
-    _s().delete(f"/connections/{connection_id}")
-    ok(f"deleted connection {connection_id}")
-
+# ---------------------------------------------------------------- configurations
 
 configurations = typer.Typer(help="Named configuration blobs.")
 app.add_typer(configurations, name="configurations")
