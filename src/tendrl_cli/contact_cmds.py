@@ -1,4 +1,4 @@
-"""Contact commands: entities, messages, files, groups, dashboards, IAM.
+"""Contact commands: entities, messages, files, groups, dashboards, access control.
 
 Everything here authenticates with a Contact *account* API key
 (``TENDRL_API_KEY``). Device-plane verbs that need an entity key
@@ -25,7 +25,7 @@ from .common import (
 )
 from .render import ok, print_json
 
-app = typer.Typer(help="Contact — devices (entities), messages, files, and account IAM.")
+app = typer.Typer(help="Contact — devices, messages, files, routing, dashboards, and access control.")
 
 
 def _c():
