@@ -6,6 +6,7 @@ Authenticates with a Surface API key (``SURFACE_KEY``).
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import quote
 
 import typer
 
@@ -150,6 +151,13 @@ def account_analytics() -> None:
 def account_blocked_ips() -> None:
     """List blocked IPs."""
     show_list(_s().get("/account/blocked-ips"), "blocked_ips", "ips")
+
+
+@account.command("unblock")
+def account_unblock(ip: str = typer.Argument(..., help="IP address to unblock (see 'account blocked-ips').")) -> None:
+    """Unblock an IP so it can scan again."""
+    _s().delete(f"/account/blocked-ips/{quote(ip, safe='')}")
+    ok(f"unblocked {ip}")
 
 
 # ---------------------------------------------------------------- profiles

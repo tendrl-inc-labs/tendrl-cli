@@ -78,6 +78,19 @@ def _explain(exc: ApiError) -> None:
         fail("this feature needs an active Strand subscription")
         err_console.print("[dim]manage your plan at https://app.tendrl.com/billing[/]")
         return
+    if exc.status_code == 403 and exc.payload.get("error") == "IP address is blocked":
+        # Surface refuses scans from an IP it auto-blocked (a malicious upload
+        # under a profile with IP blocking on). That 403 is not a role problem.
+        ip = exc.payload.get("ip") or "this IP"
+        reason = exc.payload.get("reason")
+        fail(f"{ip} is blocked from scanning on this account" + (f": {reason}" if reason else ""))
+        err_console.print(
+            f"[dim]hint: unblock it with 'tendrl-cli surface account unblock {ip}' "
+            "or from Blocked IPs in Surface[/]"
+        )
+        if exc.request_id:
+            err_console.print(f"[dim]request id: {exc.request_id}[/]")
+        return
     fail(exc.message)
     if exc.status_code == 403:
         err_console.print("[dim]hint: your key's role lacks this action (it's not a bad token)[/]")
