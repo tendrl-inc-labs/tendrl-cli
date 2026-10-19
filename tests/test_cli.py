@@ -109,3 +109,40 @@ def test_browser_login_paste_mode(monkeypatch, tmp_path):
     body = _json.loads(route.calls[0].request.content)
     assert body["code"] == "code-abc123456789xyz"
     assert len(body["verifier"]) >= 43
+
+
+def _explained(exc, capsys):
+    from tendrl_cli.cli import _explain
+    _explain(exc)
+    return capsys.readouterr().err
+
+
+def test_blocked_ip_403_is_not_reported_as_a_role_problem(capsys):
+    from tendrl_cli.http import ApiError
+    exc = ApiError(
+        "Uploaded malicious file: Known threat: Eicar",
+        status_code=403,
+        payload={"error": "IP address is blocked", "reason": "Uploaded malicious file: Known threat: Eicar", "ip": "203.0.113.7"},
+    )
+    out = _explained(exc, capsys)
+    assert "203.0.113.7 is blocked from scanning on this account" in out
+    assert "tendrl-cli surface account unblock 203.0.113.7" in out
+    assert "role lacks this action" not in out
+
+
+def test_other_403_keeps_the_role_hint(capsys):
+    from tendrl_cli.http import ApiError
+    out = _explained(ApiError("forbidden", status_code=403, payload={"reason": "forbidden"}), capsys)
+    assert "role lacks this action" in out
+
+
+@respx.mock
+def test_surface_unblock(monkeypatch):
+    monkeypatch.setenv("SURFACE_KEY", "sk1")
+    route = respx.delete("https://app.tendrl.com/surface/api/account/blocked-ips/203.0.113.7").mock(
+        return_value=httpx.Response(200, json={"ip": "203.0.113.7", "unblocked": True})
+    )
+    result = runner.invoke(app, ["surface", "account", "unblock", "203.0.113.7"])
+    assert result.exit_code == 0, result.output
+    assert route.called
+    assert "unblocked 203.0.113.7" in result.output
